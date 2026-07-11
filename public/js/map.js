@@ -1,12 +1,12 @@
 import {
   windColor,
-  windArrowSvg,
   LAKE_WIND_POINTS,
   LAKE_POLYGON,
 } from './wind-utils.js';
 
 let map = null;
 let geoObjects = null;
+let windLayout = null;
 
 const CENTER = [56.195, 36.989];
 const ZOOM = 13;
@@ -30,6 +30,22 @@ export async function initMap(apiKey) {
 
   return new Promise((resolve) => {
     ymaps.ready(() => {
+      windLayout = ymaps.templateLayoutFactory.createClass(
+        '<div class="wind-marker">' +
+          '<div class="wind-marker__arrow" style="' +
+            'border-bottom-color:$[properties.color];' +
+            'transform:rotate($[properties.rotation]deg)' +
+          '"></div>' +
+          '<span class="wind-marker__speed">$[properties.speed]</span>' +
+        '</div>',
+        {
+          build: function () {
+            this.constructor.superclass.build.call(this);
+            this.getData().options.set('visible', true);
+          },
+        }
+      );
+
       map = new ymaps.Map(container, {
         center: CENTER,
         zoom: ZOOM,
@@ -59,56 +75,45 @@ function loadYmaps(apiKey) {
   });
 }
 
-const WindMarkerLayout = () =>
-  ymaps.templateLayoutFactory.createClass(
-    `<div class="wind-marker">
-      <div style="transform:rotate($[properties.rotation]deg)">$[properties.arrow]</div>
-      <span class="wind-marker__speed">$[properties.speed]</span>
-    </div>`
-  );
-
 export function updateWindOverlay(windSpeed, windDirection) {
-  if (!map || !geoObjects || !window.ymaps) return;
+  if (!map || !geoObjects || !window.ymaps || !windLayout) return;
 
   geoObjects.removeAll();
 
   const color = windColor(windSpeed);
-  const fillOpacity = Math.min(0.15 + (windSpeed ?? 0) * 0.03, 0.45);
+  const fillOpacity = Math.min(0.2 + (windSpeed ?? 0) * 0.04, 0.5);
+  const rotation = (windDirection ?? 0) + 180;
+  const speedText = windSpeed != null ? windSpeed.toFixed(1) : '—';
 
   const lakeCoords = LAKE_POLYGON.map(([lon, lat]) => [lat, lon]);
 
-  const polygon = new ymaps.Polygon(
+  geoObjects.add(new ymaps.Polygon(
     [lakeCoords],
     {},
     {
       fillColor: color,
       fillOpacity,
       strokeColor: color,
-      strokeWidth: 2,
-      strokeOpacity: 0.8,
+      strokeWidth: 3,
+      strokeOpacity: 0.9,
+      zIndex: 100,
     }
-  );
-  geoObjects.add(polygon);
-
-  const layout = WindMarkerLayout();
-  const rotation = (windDirection ?? 0) + 180;
-  const speedText = windSpeed != null ? windSpeed.toFixed(1) : '—';
-  const arrow = windArrowSvg(windDirection, color);
+  ));
 
   LAKE_WIND_POINTS.forEach((point) => {
-    const marker = new ymaps.Placemark(
+    geoObjects.add(new ymaps.Placemark(
       [point.lat, point.lon],
-      { speed: speedText, rotation, arrow },
+      { speed: speedText, rotation, color },
       {
         iconLayout: 'default#imageWithContent',
         iconImageHref: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
         iconImageSize: [1, 1],
         iconImageOffset: [0, 0],
-        iconContentLayout: layout,
-        iconContentOffset: [-16, -20],
+        iconContentLayout: windLayout,
+        iconContentOffset: [-12, -28],
+        zIndex: 200,
       }
-    );
-    geoObjects.add(marker);
+    ));
   });
 }
 

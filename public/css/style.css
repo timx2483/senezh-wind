@@ -181,22 +181,28 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 24px;
   pointer-events: none;
   user-select: none;
 }
 
 .wind-marker__arrow {
-  width: 32px;
-  height: 32px;
-  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 22px solid #29b6f6;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+  transform-origin: center 80%;
 }
 
 .wind-marker__speed {
   font-size: 10px;
   font-weight: 700;
   color: #fff;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-  margin-top: -2px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  margin-top: 2px;
+  white-space: nowrap;
 }
 
 /* Cards */

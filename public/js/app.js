@@ -29,28 +29,36 @@ async function refresh() {
       try {
         await initMap(config.yandexMapsApiKey);
         mapReady = true;
+        updateWindOverlay(null, null);
       } catch {
         // карта не загрузилась — остальной UI всё равно показываем
       }
     }
 
-    const data = await loadWeather(lat, lon);
-    renderAll(data);
+    let data = null;
+    try {
+      data = await loadWeather(lat, lon);
+      renderAll(data);
+    } catch (err) {
+      showError('Погода: ' + (err.message || 'ошибка загрузки'));
+    }
 
-    const wind = getPrimaryWindForMap();
-    if (mapReady) {
+    if (mapReady && data) {
+      const wind = getPrimaryWindForMap();
       updateWindOverlay(wind.speed, wind.dir);
       updateMapSummary(wind.speed, wind.dir, wind.source);
     }
 
-    const errors = [];
-    for (const [group, sources] of Object.entries({ forecast: data.forecast, current: data.current })) {
-      for (const [name, src] of Object.entries(sources)) {
-        if (src && !src.ok) errors.push(`${name}: ${src.error}`);
+    if (data) {
+      const errors = [];
+      for (const [, sources] of Object.entries({ forecast: data.forecast, current: data.current })) {
+        for (const [name, src] of Object.entries(sources)) {
+          if (src && !src.ok) errors.push(`${name}: ${src.error}`);
+        }
       }
-    }
-    if (errors.length) {
-      showError('Часть источников недоступна: ' + errors.slice(0, 2).join('; '));
+      if (errors.length) {
+        showError('Часть источников недоступна: ' + errors.slice(0, 2).join('; '));
+      }
     }
   } catch (err) {
     showError(err.message || 'Ошибка загрузки данных');

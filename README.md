@@ -33,7 +33,7 @@ vercel
 
 | Переменная | Обязательно | Описание |
 |------------|-------------|----------|
-| `YANDEX_MAPS_API_KEY` | да | [Яндекс.Карты API](https://developer.tech.yandex.ru/) |
+| `YANDEX_MAPS_API_KEY` | да | [Яндекс.Карты API 2.1](https://developer.tech.yandex.ru/) — в кабинете выберите «JavaScript API и HTTP Геокодер» |
 | `STORMGLASS_API_KEY` | да | Stormglass.io (10 запросов/день) |
 | `OPENWEATHER_API_KEY` | да | OpenWeather One Call 3.0 |
 | `CHECKWX_API_KEY` | да | CheckWX METAR |

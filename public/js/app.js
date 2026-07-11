@@ -26,16 +26,22 @@ async function refresh() {
     const { lat, lon } = config.defaultLocation;
 
     if (!mapReady) {
-      await initMap(config.yandexMapsApiKey);
-      mapReady = true;
+      try {
+        await initMap(config.yandexMapsApiKey);
+        mapReady = true;
+      } catch {
+        // карта не загрузилась — остальной UI всё равно показываем
+      }
     }
 
     const data = await loadWeather(lat, lon);
     renderAll(data);
 
     const wind = getPrimaryWindForMap();
-    updateWindOverlay(wind.speed, wind.dir);
-    updateMapSummary(wind.speed, wind.dir, wind.source);
+    if (mapReady) {
+      updateWindOverlay(wind.speed, wind.dir);
+      updateMapSummary(wind.speed, wind.dir, wind.source);
+    }
 
     const errors = [];
     for (const [group, sources] of Object.entries({ forecast: data.forecast, current: data.current })) {

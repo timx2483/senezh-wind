@@ -107,6 +107,94 @@ body {
   background: var(--surface);
 }
 
+/* Animated wind arrows overlay */
+.wind-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  overflow: hidden;
+}
+
+.wind-arrow-anim {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 32px;
+  height: 56px;
+  margin-left: -16px;
+  margin-top: -28px;
+  color: var(--color, #29b6f6);
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.wind-arrow-anim--center {
+  width: 40px;
+  height: 70px;
+  margin-left: -20px;
+  margin-top: -35px;
+  z-index: 2;
+}
+
+.wind-arrow-anim--center .wind-arrow-anim__body svg {
+  width: 40px;
+  height: 70px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
+}
+
+.wind-arrow-anim__body svg {
+  width: 32px;
+  height: 56px;
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4));
+}
+
+.wind-arrow-anim__shaft {
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.wind-arrow-anim__head {
+  fill: currentColor;
+  stroke: rgba(255,255,255,0.7);
+  stroke-width: 1;
+}
+
+.wind-arrow-anim__dot {
+  fill: currentColor;
+  opacity: 0;
+  animation: wind-stream var(--duration, 2s) linear infinite;
+}
+
+.wind-arrow-anim__dot--1 { animation-delay: 0s; }
+.wind-arrow-anim__dot--2 { animation-delay: calc(var(--duration, 2s) * 0.33); }
+.wind-arrow-anim__dot--3 { animation-delay: calc(var(--duration, 2s) * 0.66); }
+
+@keyframes wind-stream {
+  0%   { transform: translateY(18px); opacity: 0; }
+  15%  { opacity: 0.9; }
+  85%  { opacity: 0.9; }
+  100% { transform: translateY(-18px); opacity: 0; }
+}
+
+.wind-arrow-anim__speed {
+  position: absolute;
+  left: 50%;
+  bottom: -18px;
+  transform: translateX(-50%) rotate(calc(-1 * var(--bearing, 0deg)));
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  white-space: nowrap;
+  background: rgba(10, 22, 40, 0.75);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 .legend {
   position: absolute;
   bottom: 12px;
@@ -176,36 +264,7 @@ body {
   margin-top: 2px;
 }
 
-/* Wind arrow markers on map */
-.wind-marker {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 24px;
-  pointer-events: none;
-  user-select: none;
-}
-
-.wind-marker__arrow {
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 22px solid #29b6f6;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
-  transform-origin: center 80%;
-}
-
-.wind-marker__speed {
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
-  margin-top: 2px;
-  white-space: nowrap;
-}
-
-/* Cards */
+.legend {
 .cards__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

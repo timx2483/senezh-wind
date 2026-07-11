@@ -1,0 +1,11 @@
+{
+  "name": "senezh-wind",
+  "version": "1.0.0",
+  "description": "Мини-приложение для виндсерфа/кайта — ветер на озере Сенеж",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  }
+}

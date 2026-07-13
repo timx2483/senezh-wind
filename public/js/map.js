@@ -37,6 +37,7 @@ export async function initMap(apiKey) {
       const layerEl = document.getElementById('wind-layer');
       if (layerEl) {
         windOverlay = new WindOverlay(map, layerEl);
+        map.events.add('actionend', () => windOverlay.topUpParticles());
       }
 
       resolve(map);

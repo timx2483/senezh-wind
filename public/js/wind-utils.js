@@ -1,3 +1,5 @@
+export const DEFAULT_LOCATION = { name: 'Озеро Сенеж', lat: 56.195, lon: 36.989 };
+
 export function windColor(speed) {
   if (speed == null || Number.isNaN(speed)) return '#90a4ae';
   if (speed < 4) return '#29b6f6';

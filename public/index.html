@@ -38,6 +38,20 @@
       <div id="map-wind-summary" class="map-wind-summary"></div>
     </section>
 
+    <section class="timeline-section">
+      <div class="timeline">
+        <button type="button" id="timeline-now" class="timeline__now-btn">Сейчас</button>
+        <div class="timeline__track">
+          <input type="range" id="timeline-slider" class="timeline__slider" min="0" max="48" step="1" value="0" />
+          <div class="timeline__ticks" id="timeline-ticks"></div>
+        </div>
+        <div class="timeline__info">
+          <span id="timeline-label" class="timeline__time">Сейчас</span>
+          <span id="timeline-mode" class="timeline__mode timeline__mode--fact">факт</span>
+        </div>
+      </div>
+    </section>
+
     <section class="cards" id="current-cards">
       <h2 class="section-title">Сейчас</h2>
       <div class="cards__grid" id="current-grid">
@@ -46,7 +60,7 @@
     </section>
 
     <section class="comparison-section">
-      <h2 class="section-title">Сводка моделей · сейчас</h2>
+      <h2 class="section-title" id="comparison-title">Сводка моделей</h2>
       <div class="comparison-bar" id="comparison-bar"></div>
     </section>
 

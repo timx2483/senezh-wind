@@ -9,37 +9,75 @@ const MODELS = [
 
 let activeModel = 'icon';
 let weatherData = null;
+let selectedHourIndex = 0;
 
-export function renderAll(data) {
+export function renderAll(data, hourIndex = 0) {
   weatherData = data;
-  renderCurrentCards(data);
-  renderComparisonBar(data);
+  selectedHourIndex = hourIndex;
+  updateSectionTitles(hourIndex);
+  renderCurrentCards(data, hourIndex);
+  renderComparisonBar(data, hourIndex);
   renderModelTabs();
   renderForecastTable();
-  renderChart(data);
+  renderChart(data, hourIndex);
   renderStations(data);
   document.getElementById('updated-at').textContent =
     `Обновлено: ${formatTime(data.updatedAt)} МСК`;
 }
 
-function renderComparisonBar(data) {
+function updateSectionTitles(hourIndex) {
+  const title = document.querySelector('#current-cards .section-title');
+  const compTitle = document.getElementById('comparison-title');
+  if (title) {
+    title.textContent = hourIndex === 0 ? 'Сейчас · факт' : `Прогноз · +${hourIndex} ч`;
+  }
+  if (compTitle) {
+    compTitle.textContent = hourIndex === 0 ? 'Сводка моделей · факт' : `Сводка моделей · +${hourIndex} ч`;
+  }
+}
+
+function getHourAtIndex(data, hourIndex) {
+  const gridTimes = data?.windField?.grid?.data?.times;
+  if (gridTimes?.[hourIndex]) return gridTimes[hourIndex];
+
+  const icon = data?.forecast?.openMeteo?.data?.icon;
+  if (icon?.[hourIndex]) return icon[hourIndex].time;
+
+  return null;
+}
+
+function findHourByIndex(hours, hourIndex) {
+  if (!hours?.length) return null;
+  return hours[hourIndex] ?? hours[0];
+}
+
+function renderComparisonBar(data, hourIndex = 0) {
   const bar = document.getElementById('comparison-bar');
   const items = [];
+  const isFact = hourIndex === 0;
+
+  if (isFact && data.current?.metar?.ok) {
+    const m = data.current.metar.data;
+    items.push({ model: 'METAR', speed: m.windSpeed, dir: m.windDirection });
+  }
 
   if (data.forecast?.openMeteo?.ok) {
-    const icon = findClosestHour(data.forecast.openMeteo.data.icon);
+    const icon = findHourByIndex(data.forecast.openMeteo.data.icon, hourIndex);
     items.push({ model: 'ICON', speed: icon.windSpeed10m, dir: icon.windDir10m });
-    const ecmwf = findClosestHour(data.forecast.openMeteo.data.ecmwf);
+    const ecmwf = findHourByIndex(data.forecast.openMeteo.data.ecmwf, hourIndex);
     items.push({ model: 'ECMWF', speed: ecmwf.windSpeed10m, dir: ecmwf.windDir10m });
   }
 
-  if (data.forecast?.openWeather?.ok && data.forecast.openWeather.data.current) {
+  if (isFact && data.forecast?.openWeather?.ok && data.forecast.openWeather.data.current) {
     const ow = data.forecast.openWeather.data.current;
     items.push({ model: 'GFS blend', speed: ow.windSpeed, dir: ow.windDirection });
+  } else if (!isFact && data.forecast?.openWeather?.ok) {
+    const ow = findHourByIndex(data.forecast.openWeather.data.hourly, hourIndex);
+    if (ow) items.push({ model: 'OpenWeather', speed: ow.windSpeed, dir: ow.windDirection });
   }
 
   if (data.forecast?.stormglass?.ok) {
-    const sg = findClosestStormglass(data.forecast.stormglass.data.hours);
+    const sg = findHourByIndex(data.forecast.stormglass.data.hours, hourIndex);
     if (sg?.models) {
       for (const [key, m] of Object.entries(sg.models)) {
         if (['noaa', 'ecmwf', 'icon'].includes(key)) {
@@ -49,9 +87,8 @@ function renderComparisonBar(data) {
     }
   }
 
-  if (data.current?.metar?.ok) {
-    const m = data.current.metar.data;
-    items.push({ model: 'METAR', speed: m.windSpeed, dir: m.windDirection });
+  if (isFact && data.current?.metar?.ok) {
+    // already added
   }
 
   bar.innerHTML = items.map((item) => {
@@ -103,11 +140,12 @@ function findClosestHour(hours) {
   return best;
 }
 
-function renderCurrentCards(data) {
+function renderCurrentCards(data, hourIndex = 0) {
   const grid = document.getElementById('current-grid');
   const cards = [];
+  const isFact = hourIndex === 0;
 
-  if (data.current?.metar?.ok) {
+  if (isFact && data.current?.metar?.ok) {
     const m = data.current.metar.data;
     cards.push(buildCard('METAR UUEE', m.windSpeed, m.windDirection, {
       meta: `Шереметьево · ${formatTime(m.observed)} · ~35 км`,
@@ -119,24 +157,22 @@ function renderCurrentCards(data) {
   }
 
   if (data.forecast?.openMeteo?.ok) {
-    const icon = data.forecast.openMeteo.data.icon;
-    const now = findClosestHour(icon);
-    cards.push(buildCard('ICON', now.windSpeed10m, now.windDir10m, {
-      meta: `10 м · ${formatTime(now.time)}`,
-      extra: `80 м: ${now.windSpeed80m ?? '—'} м/с · ${formatPressure(now.pressure)}`,
-      badge: windLabel(now.windSpeed10m),
+    const icon = findHourByIndex(data.forecast.openMeteo.data.icon, hourIndex);
+    cards.push(buildCard('ICON', icon.windSpeed10m, icon.windDir10m, {
+      meta: `10 м · ${formatTime(icon.time)}`,
+      extra: `80 м: ${icon.windSpeed80m ?? '—'} м/с · ${formatPressure(icon.pressure)}`,
+      badge: windLabel(icon.windSpeed10m),
     }));
 
-    const ecmwf = data.forecast.openMeteo.data.ecmwf;
-    const eNow = findClosestHour(ecmwf);
-    cards.push(buildCard('ECMWF', eNow.windSpeed10m, eNow.windDir10m, {
-      meta: `10 м · ${formatTime(eNow.time)}`,
-      extra: `Осадки: ${formatPrecip(eNow.precipitation)} мм/ч`,
-      badge: windLabel(eNow.windSpeed10m),
+    const ecmwf = findHourByIndex(data.forecast.openMeteo.data.ecmwf, hourIndex);
+    cards.push(buildCard('ECMWF', ecmwf.windSpeed10m, ecmwf.windDir10m, {
+      meta: `10 м · ${formatTime(ecmwf.time)}`,
+      extra: `Осадки: ${formatPrecip(ecmwf.precipitation)} мм/ч`,
+      badge: windLabel(ecmwf.windSpeed10m),
     }));
   }
 
-  if (data.forecast?.openWeather?.ok) {
+  if (isFact && data.forecast?.openWeather?.ok) {
     const ow = data.forecast.openWeather.data.current;
     if (ow) {
       cards.push(buildCard('OpenWeather', ow.windSpeed, ow.windDirection, {
@@ -148,17 +184,14 @@ function renderCurrentCards(data) {
   }
 
   if (data.forecast?.stormglass?.ok) {
-    const sg = data.forecast.stormglass.data.hours;
-    const now = findClosestStormglass(sg);
-    if (now) {
-      const gfs = now.models.noaa;
-      if (gfs) {
-        cards.push(buildCard('GFS (Stormglass)', gfs.windSpeed, gfs.windDirection, {
-          meta: formatTime(now.time),
-          extra: `Порыв: ${gfs.gust ?? '—'} м/с`,
-          badge: windLabel(gfs.windSpeed),
-        }));
-      }
+    const sg = findHourByIndex(data.forecast.stormglass.data.hours, hourIndex);
+    if (sg?.models?.noaa) {
+      const gfs = sg.models.noaa;
+      cards.push(buildCard('GFS (Stormglass)', gfs.windSpeed, gfs.windDirection, {
+        meta: formatTime(sg.time),
+        extra: `Порыв: ${gfs.gust ?? '—'} м/с`,
+        badge: windLabel(gfs.windSpeed),
+      }));
     }
   }
 
@@ -271,7 +304,7 @@ function getModelHours(modelId) {
   return [];
 }
 
-function renderChart(data) {
+function renderChart(data, selectedHour = 0) {
   const canvas = document.getElementById('wind-chart');
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
@@ -348,9 +381,9 @@ function renderChart(data) {
     const points = s.data.slice(0, hours);
     if (!points.length) return;
 
-    ctx.beginPath();
     ctx.strokeStyle = s.color;
     ctx.lineWidth = 2;
+    ctx.beginPath();
     points.forEach((p, i) => {
       const v = p.windSpeed ?? p.windSpeed10m ?? 0;
       const x = pad.left + (i / (hours - 1)) * chartW;
@@ -359,6 +392,19 @@ function renderChart(data) {
       else ctx.lineTo(x, y);
     });
     ctx.stroke();
+
+    if (selectedHour > 0 && selectedHour < hours) {
+      const p = points[selectedHour];
+      if (p) {
+        const v = p.windSpeed ?? p.windSpeed10m ?? 0;
+        const x = pad.left + (selectedHour / (hours - 1)) * chartW;
+        const y = pad.top + chartH - (v / maxSpeed) * chartH;
+        ctx.fillStyle = s.color;
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   });
 
   const legend = document.getElementById('chart-legend');

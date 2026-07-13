@@ -5,7 +5,7 @@ let map = null;
 let windOverlay = null;
 
 const CENTER = [56.195, 36.989];
-const ZOOM = 13;
+const ZOOM = 12;
 
 export async function initMap(apiKey) {
   const container = document.getElementById('map');
@@ -20,7 +20,7 @@ export async function initMap(apiKey) {
   } catch (err) {
     container.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8fa3bf;padding:20px;text-align:center;font-size:0.85rem;line-height:1.5">' +
-      'Не удалось загрузить Яндекс.Карты.<br><small>Проверьте ключ API и ограничения по домену:<br>senezh-wind.vercel.app</small></div>';
+      'Не удалось загрузить Яндекс.Карты.<br><small>Проверьте ключ API и ограничения по домену</small></div>';
     throw err;
   }
 
@@ -58,22 +58,24 @@ function loadYmaps(apiKey) {
   });
 }
 
-export function updateWindOverlay(windSpeed, windDirection) {
+export function updateWindField(field) {
   if (!windOverlay) return;
-  windOverlay.setWind(windSpeed, windDirection);
+  windOverlay.setWindField(field);
 }
 
-export function updateMapSummary(windSpeed, windDirection, source) {
+export function updateMapSummary(windSpeed, windDirection, source, mode) {
   const el = document.getElementById('map-wind-summary');
   if (!el) return;
 
   const color = windColor(windSpeed);
   const blowsTo = windBlowsToCompass(windDirection);
+  const modeLabel = mode === 'fact' ? 'факт' : 'прогноз';
+
   el.innerHTML = `
     <div class="map-wind-summary__speed" style="color:${color}">
       ${windSpeed != null ? windSpeed.toFixed(1) : '—'} <small style="font-size:0.5em;font-weight:500">м/с</small>
     </div>
     <div class="map-wind-summary__dir">дует → ${blowsTo}</div>
-    <div class="map-wind-summary__label">${source || 'прогноз'} · ${windDirection ?? '—'}°</div>
+    <div class="map-wind-summary__label">${source} · ${modeLabel}</div>
   `;
 }

@@ -57,18 +57,26 @@ export class WindOverlay {
   }
 
   resize() {
-    const parent = this.canvas.parentElement;
-    const w = Math.round(parent?.clientWidth || this.map.container.getSize()[0] || 300);
-    const h = Math.round(parent?.clientHeight || this.map.container.getSize()[1] || 200);
+    const size = this.map.container.getSize();
+    const w = Math.max(size[0] || 0, 100);
+    const h = Math.max(size[1] || 0, 100);
     const dpr = window.devicePixelRatio || 1;
 
     this.canvas.width = Math.max(1, Math.floor(w * dpr));
     this.canvas.height = Math.max(1, Math.floor(h * dpr));
     this.canvas.style.width = `${w}px`;
     this.canvas.style.height = `${h}px`;
+    this.canvas.style.display = 'block';
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.w = w;
     this.h = h;
+
+    if (this.particles.length) {
+      for (const p of this.particles) {
+        p.x = Math.min(p.x, w);
+        p.y = Math.min(p.y, h);
+      }
+    }
   }
 
   targetCount() {

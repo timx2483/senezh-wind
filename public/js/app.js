@@ -60,11 +60,14 @@ async function refresh() {
     try {
       weatherData = await loadWeather(lat, lon);
       renderAll(weatherData, getSelectedHourIndex());
-
       initTimeline(weatherData, onTimelineChange, true);
       applyWindForHour(getSelectedHourIndex());
     } catch (err) {
       showError('Погода: ' + (err.message || 'ошибка загрузки'));
+    }
+
+    if (mapReady && weatherData) {
+      applyWindForHour(getSelectedHourIndex());
     }
 
     if (weatherData) {

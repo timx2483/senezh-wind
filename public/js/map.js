@@ -34,10 +34,24 @@ export async function initMap(apiKey) {
         suppressMapOpenBlock: true,
       });
 
+      if (!map.panes.get('windFlow')) {
+        map.panes.append('windFlow', new ymaps.pane.StaticPane(map, {
+          zIndex: 100500,
+          css: {
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+          },
+        }));
+      }
+
       const layerEl = document.getElementById('wind-layer');
       if (layerEl) {
-        const pane = map.panes.get('overlays').getElement();
-        pane.appendChild(layerEl);
+        const paneEl = map.panes.get('windFlow').getElement();
+        paneEl.appendChild(layerEl);
         windOverlay = new WindOverlay(map, layerEl);
       }
 

@@ -34,12 +34,10 @@ export async function initMap(apiKey) {
         suppressMapOpenBlock: true,
       });
 
-      const mapEl = map.container.getElement();
-      mapEl.style.position = 'relative';
-
       const layerEl = document.getElementById('wind-layer');
       if (layerEl) {
-        mapEl.appendChild(layerEl);
+        const pane = map.panes.get('overlays').getElement();
+        pane.appendChild(layerEl);
         windOverlay = new WindOverlay(map, layerEl);
       }
 

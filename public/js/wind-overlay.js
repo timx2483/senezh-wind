@@ -1,15 +1,8 @@
 import { windColor, degToCompass } from './wind-utils.js';
 
-const WIND_MOTION_SCALE = 14;
+const WIND_MOTION_SCALE = 0.12;
 const MIN_PARTICLES = 120;
 const PX_PER_PARTICLE = 4500;
-
-const FALLBACK_BOUNDS = {
-  south: 56.13,
-  north: 56.26,
-  west: 36.9,
-  east: 37.08,
-};
 
 export class WindOverlay {
   constructor(map, canvas) {
@@ -19,13 +12,15 @@ export class WindOverlay {
     this.gridPoints = [];
     this.particles = [];
 
-    this.canvas.style.position = 'absolute';
-    this.canvas.style.left = '0';
-    this.canvas.style.top = '0';
-    this.canvas.style.width = '100%';
-    this.canvas.style.height = '100%';
-    this.canvas.style.pointerEvents = 'none';
-    this.canvas.style.zIndex = '10000';
+    Object.assign(this.canvas.style, {
+      position: 'absolute',
+      left: '0',
+      top: '0',
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none',
+      zIndex: '1000',
+    });
 
     this._onMapChange = () => {
       this.resize();
@@ -37,21 +32,19 @@ export class WindOverlay {
     map.events.add('actionend', this._onMapChange);
 
     this.resize();
-    this._loop = this._loop.bind(this);
     this._running = true;
     this._lastTime = performance.now();
+    this._loop = (t) => {
+      if (!this._running) return;
+      requestAnimationFrame(this._loop);
+      const dt = Math.min((t - this._lastTime) / 1000, 0.05);
+      this._lastTime = t;
+      if (this.gridPoints.length) {
+        this.tick(dt);
+        this.draw();
+      }
+    };
     requestAnimationFrame(this._loop);
-  }
-
-  _loop(t) {
-    if (!this._running) return;
-    requestAnimationFrame(this._loop);
-    const dt = Math.min((t - this._lastTime) / 1000, 0.05);
-    this._lastTime = t;
-    if (this.gridPoints.length) {
-      this.tick(dt);
-      this.draw();
-    }
   }
 
   setWindField(field) {
@@ -60,19 +53,13 @@ export class WindOverlay {
     );
     this.particles = [];
     this.topUpParticles(true);
-    if (!this.particles.length) {
-      setTimeout(() => this.topUpParticles(true), 200);
-      setTimeout(() => this.topUpParticles(true), 800);
-    }
     this.resize();
   }
 
   resize() {
     const parent = this.canvas.parentElement;
-    const rect = parent?.getBoundingClientRect();
-    const size = this.map.container.getSize();
-    const w = Math.round(rect?.width || size[0] || 300);
-    const h = Math.round(rect?.height || size[1] || 200);
+    const w = Math.round(parent?.clientWidth || this.map.container.getSize()[0] || 300);
+    const h = Math.round(parent?.clientHeight || this.map.container.getSize()[1] || 200);
     const dpr = window.devicePixelRatio || 1;
 
     this.canvas.width = Math.max(1, Math.floor(w * dpr));
@@ -84,67 +71,41 @@ export class WindOverlay {
     this.h = h;
   }
 
-  getBounds() {
-    try {
-      const bounds = this.map.getBounds();
-      if (!bounds?.length) return { ...FALLBACK_BOUNDS };
-      const [sw, ne] = bounds;
-      return {
-        south: Math.min(sw[0], ne[0]),
-        north: Math.max(sw[0], ne[0]),
-        west: Math.min(sw[1], ne[1]),
-        east: Math.max(sw[1], ne[1]),
-      };
-    } catch {
-      return { ...FALLBACK_BOUNDS };
-    }
-  }
-
   targetCount() {
-    const area = (this.w || 400) * (this.h || 300);
-    return Math.max(MIN_PARTICLES, Math.floor(area / PX_PER_PARTICLE));
-  }
-
-  randomInBounds(b) {
-    return {
-      lat: b.south + Math.random() * (b.north - b.south),
-      lon: b.west + Math.random() * (b.east - b.west),
-    };
+    return Math.max(MIN_PARTICLES, Math.floor((this.w * this.h) / PX_PER_PARTICLE));
   }
 
   topUpParticles(force = false) {
-    const b = this.getBounds();
+    const w = this.w || 300;
+    const h = this.h || 200;
     const target = this.targetCount();
     if (force) this.particles = [];
     while (this.particles.length < target) {
-      const pos = this.randomInBounds(b);
-      this.particles.push({ lat: pos.lat, lon: pos.lon });
-    }
-    if (this.particles.length > target * 1.4) {
-      this.particles.length = target;
+      this.particles.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+      });
     }
   }
 
-  geoToPage(lat, lon) {
+  pageToGeo(x, y) {
     try {
-      if (this.map.converter?.coordinatesToPage) {
-        const p = this.map.converter.coordinatesToPage([lat, lon]);
-        if (p && Number.isFinite(p[0]) && Number.isFinite(p[1])) return p;
+      if (this.map.converter?.pageToCoordinates) {
+        const c = this.map.converter.pageToCoordinates([x, y]);
+        if (c && Number.isFinite(c[0])) return c;
       }
     } catch {
-      // fallback below
+      // fallback
     }
 
     try {
       const zoom = this.map.getZoom();
       const projection = this.map.options.get('projection');
-      const global = projection.toGlobalPixels([lat, lon], zoom);
       const center = this.map.getGlobalPixelCenter();
       const size = this.map.container.getSize();
-      return [
-        global[0] - center[0] + size[0] / 2,
-        global[1] - center[1] + size[1] / 2,
-      ];
+      const globalX = center[0] - size[0] / 2 + x;
+      const globalY = center[1] - size[1] / 2 + y;
+      return projection.fromGlobalPixels([globalX, globalY], zoom);
     } catch {
       return null;
     }
@@ -182,32 +143,28 @@ export class WindOverlay {
     };
   }
 
-  moveParticle(p, speed, fromDir, dt) {
-    const blowRad = (((fromDir ?? 0) + 180) % 360) * (Math.PI / 180);
-    const meters = speed * dt * WIND_MOTION_SCALE;
-    const latRad = (p.lat * Math.PI) / 180;
-    p.lat += (meters * Math.cos(blowRad)) / 111320;
-    p.lon += (meters * Math.sin(blowRad)) / (111320 * Math.cos(latRad));
+  moveScreen(p, wind, dt) {
+    const zoom = this.map.getZoom();
+    const blowRad = (((wind.dir ?? 0) + 180) % 360) * (Math.PI / 180);
+    const px = wind.speed * dt * WIND_MOTION_SCALE * 1000 * (zoom / 11);
+    p.x += Math.sin(blowRad) * px;
+    p.y -= Math.cos(blowRad) * px;
   }
 
   tick(dt) {
-    const b = this.getBounds();
-    const pad = 0.015;
+    const w = this.w;
+    const h = this.h;
+    const pad = 4;
 
     for (const p of this.particles) {
-      const wind = this.sampleWind(p.lat, p.lon);
-      this.moveParticle(p, wind.speed, wind.dir, dt);
+      const geo = this.pageToGeo(p.x, p.y);
+      const wind = geo ? this.sampleWind(geo[0], geo[1]) : { speed: 3, dir: 0 };
+      this.moveScreen(p, wind, dt);
 
-      if (
-        p.lat < b.south - pad ||
-        p.lat > b.north + pad ||
-        p.lon < b.west - pad ||
-        p.lon > b.east + pad
-      ) {
-        const pos = this.randomInBounds(b);
-        p.lat = pos.lat;
-        p.lon = pos.lon;
-      }
+      if (p.x < -pad) p.x = w + pad;
+      if (p.x > w + pad) p.x = -pad;
+      if (p.y < -pad) p.y = h + pad;
+      if (p.y > h + pad) p.y = -pad;
     }
   }
 
@@ -221,7 +178,7 @@ export class WindOverlay {
     ctx.translate(x, y);
     ctx.rotate(blow - Math.PI / 2);
     ctx.fillStyle = color;
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
     ctx.lineWidth = 0.8;
     ctx.beginPath();
     ctx.moveTo(0, -len);
@@ -242,25 +199,12 @@ export class WindOverlay {
 
     if (!this.particles.length) {
       this.topUpParticles();
-      if (!this.particles.length) return;
     }
-
-    let drawn = 0;
-    const margin = 30;
 
     for (const p of this.particles) {
-      const pos = this.geoToPage(p.lat, p.lon);
-      if (!pos) continue;
-      const [x, y] = pos;
-      if (x < -margin || x > w + margin || y < -margin || y > h + margin) continue;
-
-      const wind = this.sampleWind(p.lat, p.lon);
-      this.drawArrow(x, y, wind.dir, wind.speed);
-      drawn++;
-    }
-
-    if (drawn === 0 && this.particles.length) {
-      this.topUpParticles(true);
+      const geo = this.pageToGeo(p.x, p.y);
+      const wind = geo ? this.sampleWind(geo[0], geo[1]) : { speed: 3, dir: 0 };
+      this.drawArrow(p.x, p.y, wind.dir, wind.speed);
     }
   }
 

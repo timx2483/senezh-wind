@@ -212,31 +212,6 @@ body {
   color: #29b6f6;
 }
 
-.wind-arrow-anim--station {
-  width: 36px;
-  height: 62px;
-  margin-left: -18px;
-  margin-top: -31px;
-  z-index: 3;
-}
-
-.wind-arrow-anim--station .wind-arrow-anim__body svg {
-  width: 36px;
-  height: 62px;
-}
-
-.wind-arrow-anim__station {
-  position: absolute;
-  left: 50%;
-  bottom: -14px;
-  transform: translateX(-50%) rotate(calc(-1 * var(--bearing, 0deg)));
-  font-size: 9px;
-  font-weight: 700;
-  color: #ffd54f;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
-  white-space: nowrap;
-}
-
 .map {
   width: 100%;
   height: 100%;
@@ -248,55 +223,48 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 5;
-  overflow: hidden;
+  z-index: 500;
+  overflow: visible;
 }
 
 .wind-arrow-anim {
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 32px;
-  height: 56px;
-  margin-left: -16px;
-  margin-top: -28px;
+  width: 11px;
+  height: 19px;
   color: var(--color, #29b6f6);
   transform-origin: center center;
-  will-change: transform;
+  will-change: left, top, transform;
 }
 
-.wind-arrow-anim--center {
-  width: 40px;
-  height: 70px;
-  margin-left: -20px;
-  margin-top: -35px;
-  z-index: 2;
+.wind-arrow-anim--station {
+  width: 13px;
+  height: 21px;
+  z-index: 3;
 }
 
-.wind-arrow-anim--center .wind-arrow-anim__body svg {
-  width: 40px;
-  height: 70px;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
+.wind-arrow-anim--station .wind-arrow-anim__body svg {
+  width: 13px;
+  height: 21px;
 }
 
 .wind-arrow-anim__body svg {
-  width: 32px;
-  height: 56px;
+  width: 11px;
+  height: 19px;
   display: block;
   overflow: visible;
-  filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4));
+  filter: drop-shadow(0 0.5px 1px rgba(0,0,0,0.5));
 }
 
 .wind-arrow-anim__shaft {
   stroke: currentColor;
-  stroke-width: 3;
+  stroke-width: 1.5;
   stroke-linecap: round;
 }
 
 .wind-arrow-anim__head {
   fill: currentColor;
-  stroke: rgba(255,255,255,0.7);
-  stroke-width: 1;
+  stroke: rgba(255,255,255,0.6);
+  stroke-width: 0.5;
 }
 
 .wind-arrow-anim__dot {
@@ -310,25 +278,10 @@ body {
 .wind-arrow-anim__dot--3 { animation-delay: calc(var(--duration, 2s) * 0.66); }
 
 @keyframes wind-stream {
-  0%   { transform: translateY(18px); opacity: 0; }
-  15%  { opacity: 0.9; }
-  85%  { opacity: 0.9; }
-  100% { transform: translateY(-18px); opacity: 0; }
-}
-
-.wind-arrow-anim__speed {
-  position: absolute;
-  left: 50%;
-  bottom: -18px;
-  transform: translateX(-50%) rotate(calc(-1 * var(--bearing, 0deg)));
-  font-size: 11px;
-  font-weight: 800;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
-  white-space: nowrap;
-  background: rgba(10, 22, 40, 0.75);
-  padding: 2px 6px;
-  border-radius: 4px;
+  0%   { transform: translateY(6px); opacity: 0; }
+  15%  { opacity: 0.85; }
+  85%  { opacity: 0.85; }
+  100% { transform: translateY(-6px); opacity: 0; }
 }
 
 .legend {
